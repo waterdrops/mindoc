@@ -33,6 +33,8 @@ const (
 	MemberAdminRole
 	//普通用户.
 	MemberGeneralRole
+	//只读用户.
+	MemberReaderRole
 )
 
 // 系统角色
@@ -106,9 +108,9 @@ func GetDefaultCover() string {
 	return URLForWithCdnImage(web.AppConfig.DefaultString("cover", "/static/images/book.jpg"))
 }
 
-// 获取允许的商城文件的类型.
+// 获取允许的上传文件的类型.
 func GetUploadFileExt() []string {
-	ext := web.AppConfig.DefaultString("upload_file_ext", "png|jpg|jpeg|gif|txt|doc|docx|pdf")
+	ext := web.AppConfig.DefaultString("upload_file_ext", "png|jpg|jpeg|gif|txt|doc|docx|pdf|mp4")
 
 	temp := strings.Split(ext, "|")
 
@@ -201,7 +203,7 @@ func GetExportOutputPath() string {
 	return exportOutputPath
 }
 
-// 判断是否是允许商城的文件类型.
+// 判断是否是允许上传的文件类型.
 func IsAllowUploadFileExt(ext string) bool {
 
 	if strings.HasPrefix(ext, ".") {
@@ -365,14 +367,30 @@ func WorkingDir(elem ...string) string {
 	return filepath.Join(elems...)
 }
 
+// resolveBaseDir 按优先级返回程序的工作根目录：
+// 1. 可执行文件所在目录（存在 conf/app.conf 则认为有效）
+// 2. 当前工作目录
+func resolveBaseDir() string {
+	// 优先：可执行文件所在目录
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		// 处理 go run 时的临时路径（路径含 go-build）
+		if !strings.Contains(exeDir, "go-build") {
+			if _, err := os.Stat(filepath.Join(exeDir, "conf", "app.conf")); err == nil {
+				return exeDir
+			}
+		}
+	}
+	// 兜底：当前工作目录
+	if cwd, err := filepath.Abs("."); err == nil {
+		return cwd
+	}
+	return "."
+}
+
 func init() {
-	if p, err := filepath.Abs("./conf/app.conf"); err == nil {
-		ConfigurationFile = p
-	}
-	if p, err := filepath.Abs("./"); err == nil {
-		WorkingDirectory = p
-	}
-	if p, err := filepath.Abs("./runtime/logs"); err == nil {
-		LogFile = p
-	}
+	base := resolveBaseDir()
+	ConfigurationFile = filepath.Join(base, "conf", "app.conf")
+	WorkingDirectory = base
+	LogFile = filepath.Join(base, "runtime", "logs")
 }

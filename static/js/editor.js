@@ -5,29 +5,48 @@
 /**
  * 打开最后选中的节点
  */
- function openLastSelectedNode() {
+function selectCatalogNode(nodeId, persist) {
+    var selected = false;
+    var normalizedNodeId = parseInt(nodeId, 10);
+
+    if (!normalizedNodeId) {
+        return false;
+    }
+
+    try {
+        $.each(window.documentCategory, function (i, n) {
+            if (parseInt(n.id, 10) === normalizedNodeId && !selected) {
+                var node = {"id": n.id};
+                window.treeCatalog.deselect_all();
+                window.treeCatalog.select_node(node);
+                if (persist) {
+                    setLastSelectNode(node);
+                }
+                selected = true;
+            }
+        });
+    } catch ($ex) {
+        console.log($ex)
+    }
+
+    return selected;
+}
+
+function openLastSelectedNode() {
     //如果文档树或编辑器没有准备好则不加载文档
     if (window.treeCatalog == null || window.editor == null) {
         return false;
     }
     var $isSelected = false;
+
+    if (window.selectedDocId) {
+        $isSelected = selectCatalogNode(window.selectedDocId, true);
+    }
+
     if (window.localStorage) {
         var $selectedNodeId = window.sessionStorage.getItem("MinDoc::LastLoadDocument:" + window.book.identify);
-        try {
-            if ($selectedNodeId) {
-                //遍历文档树判断是否存在节点
-                $.each(window.documentCategory, function (i, n) {
-                    if (n.id == $selectedNodeId && !$isSelected) {
-                        var $node = {"id": n.id};
-                        window.treeCatalog.deselect_all();
-                        window.treeCatalog.select_node($node);
-                        $isSelected = true;
-                    }
-                });
-
-            }
-        } catch ($ex) {
-            console.log($ex)
+        if (!$isSelected && $selectedNodeId) {
+            $isSelected = selectCatalogNode($selectedNodeId, false);
         }
     }
 
@@ -36,9 +55,7 @@
         var doc = window.documentCategory[0];
 
         if (doc && doc.id > 0) {
-            var node = {"id": doc.id};
-            $("#sidebar").jstree(true).select_node(node);
-            $isSelected = true;
+            $isSelected = selectCatalogNode(doc.id, true);
         }
     }
     return $isSelected;
@@ -437,6 +454,85 @@ function uploadImage($id, $callback) {
     });
 }
 
+
+function uploadResource($id, $callback) {
+    locales = {
+        'zh-CN': {
+            unsupportType: '不支持的图片/视频格式',
+            uploadFailed: '图片/视频上传失败'
+        },
+        'en': {
+            unsupportType: 'Unsupport image/video type',
+            uploadFailed: 'Upload image/video failed'
+        }
+    }
+    /** 粘贴上传的资源 **/
+    document.getElementById($id).addEventListener('paste', function (e) {
+        if (e.clipboardData && e.clipboardData.items) {
+            var clipboard = e.clipboardData;
+            for (var i = 0, len = clipboard.items.length; i < len; i++) {
+                if (clipboard.items[i].kind === 'file' || clipboard.items[i].type.indexOf('image') > -1) {
+
+                    var resource = clipboard.items[i].getAsFile();
+
+                    var fileName = String((new Date()).valueOf());
+                    console.log(resource.type)
+                    switch (resource.type) {
+                        case "image/png" :
+                            fileName += ".png";
+                            break;
+                        case "image/jpg" :
+                            fileName += ".jpg";
+                            break;
+                        case "image/jpeg" :
+                            fileName += ".jpeg";
+                            break;
+                        case "image/gif" :
+                            fileName += ".gif";
+                            break;
+                        case "video/mp4":
+                            fileName += ".mp4";
+                            break;
+                        case "video/webm":
+                            fileName += ".webm";
+                            break;
+                        default :
+                            layer.msg(locales[lang].unsupportType);
+                            return;
+                    }
+                    var form = new FormData();
+
+                    form.append('editormd-resource-file', resource, fileName);
+
+                    var layerIndex = 0;
+
+                    $.ajax({
+                        url: window.imageUploadURL,
+                        type: "POST",
+                        dataType: "json",
+                        data: form,
+                        processData: false,
+                        contentType: false,
+                        beforeSend: function () {
+                            layerIndex = $callback('before');
+                        },
+                        error: function () {
+                            layer.close(layerIndex);
+                            $callback('error');
+                            layer.msg(locales[lang].uploadFailed);
+                        },
+                        success: function (data) {
+                            layer.close(layerIndex);
+                            $callback('success', data);
+                        }
+                    });
+                    e.preventDefault();
+                }
+            }
+        }
+    });
+}
+
 /**
  * 初始化代码高亮
  */
@@ -447,6 +543,14 @@ function initHighlighting() {
 }
 
 $(function () {
+    locales = {
+        'zh-CN': {
+            attachments: ' 个附件',
+        },
+        'en': {
+            attachments: ' attachments',
+        }
+    }
     window.vueApp = new Vue({
         el: "#attachList",
         data: {
@@ -484,7 +588,7 @@ $(function () {
         },
         watch: {
             lists: function ($lists) {
-                $("#attachInfo").text(" " + $lists.length + " 个附件")
+                $("#attachInfo").text(" " + $lists.length + locales[lang].attachments)
             }
         }
     });

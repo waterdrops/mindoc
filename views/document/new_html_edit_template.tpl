@@ -16,6 +16,7 @@
         window.fileUploadURL = "{{urlfor "DocumentController.Upload" "identify" .Model.Identify}}";
         window.documentCategory = {{.Result}};
         window.book = {{.ModelResult}};
+        window.selectedDocId = {{.SelectedDocId}};
         window.selectNode = null;
         window.deleteURL = "{{urlfor "DocumentController.Delete" ":key" .Model.Identify}}";
         window.editURL = "{{urlfor "DocumentController.Content" ":key" .Model.Identify ":id" ""}}";
@@ -24,6 +25,7 @@
         window.historyURL = "{{urlfor "DocumentController.History"}}";
         window.removeAttachURL = "{{urlfor "DocumentController.RemoveAttachment"}}";
         window.highlightStyle = "{{.HighlightStyle}}";
+        window.lang = {{i18n $.Lang "common.js_lang"}};
     </script>
     <!-- Bootstrap -->
     <link href="{{cdncss "/static/bootstrap/css/bootstrap.min.css"}}" rel="stylesheet">

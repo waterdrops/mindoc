@@ -25,6 +25,7 @@
     <link href="{{cdncss "/static/editor.md/css/editormd.preview.css" "version"}}" rel="stylesheet">
     <link href="{{cdncss "/static/css/markdown.preview.css" "version"}}" rel="stylesheet">
     <link href="{{cdncss (print "/static/editor.md/lib/highlight/styles/" .HighlightStyle ".css") "version"}}" rel="stylesheet">
+    <link href="{{cdncss "/static/prismjs/prismjs.css"}}" rel="stylesheet">
     <link href="{{cdncss "/static/katex/katex.min.css"}}" rel="stylesheet">
     <link href="{{cdncss "/static/css/print.css" "version"}}" media="print" rel="stylesheet">
 
@@ -33,8 +34,10 @@
         window.BASE_URL = '{{urlfor "HomeController.Index" }}';
         window.IS_DOCUMENT_INDEX = '{{if .IS_DOCUMENT_INDEX}}true{{end}}' === 'true';
         window.IS_DISPLAY_COMMENT = '{{if .Model.IsDisplayComment}}true{{end}}' === 'true';
+        window.editURL = '{{urlfor "DocumentController.Edit" ":key" .Model.Identify ":id" ""}}';
+        window.currentDocumentId = {{.DocumentId}};
     </script>
-    <script type="text/javascript">window.book={"identify":"{{.Model.Identify}}"};</script>
+    <script type="text/javascript">window.book={"identify": '{{.Model.Identify}}'};</script>
     <style>
         .btn-mobile {
             position: absolute;
@@ -50,6 +53,15 @@
             .btn-mobile{
                 display: none;
             }
+        }
+
+        .svg {
+            display: inline-block;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            vertical-align: middle;
+            overflow: auto;
         }
     </style>
 </head>
@@ -70,7 +82,7 @@
                 {{if gt .Member.MemberId 0}}
                 {{if eq .Model.RoleId 0 1 2}}
                 <div class="dropdown pull-left" style="margin-right: 10px;">
-                    <a href="{{urlfor "DocumentController.Edit" ":key" .Model.Identify ":id" ""}}" class="btn btn-danger"><i class="fa fa-edit" aria-hidden="true"></i> {{i18n .Lang "blog.edit"}}</a>
+                    <a href="{{if gt .DocumentId 0}}{{urlfor "DocumentController.Edit" ":key" .Model.Identify ":id" .DocumentId}}{{else}}{{urlfor "DocumentController.Edit" ":key" .Model.Identify ":id" ""}}{{end}}" class="btn btn-danger" id="editDocumentLink"><i class="fa fa-edit" aria-hidden="true"></i> {{i18n .Lang "blog.edit"}}</a>
                     {{if eq .Model.RoleId 0 1}}
                     <a href="{{urlfor "BookController.Users" ":key" .Model.Identify}}" class="btn btn-success"><i class="fa fa-user" aria-hidden="true"></i> {{i18n .Lang "blog.member"}}</a>
                     <a href="{{urlfor "BookController.Setting" ":key" .Model.Identify}}" class="btn btn-primary"><i class="fa fa-gear" aria-hidden="true"></i> {{i18n .Lang "common.setting"}}</a>
@@ -78,7 +90,9 @@
                 </div>
                 {{end}}
                 {{end}}
+                {{if .Model.PrintState}}
                 <a href="javascript:window.print();" id="printSinglePage" class="btn btn-default" style="margin-right: 10px;"><i class="fa fa-print"></i> {{i18n .Lang "doc.print"}}</a>
+                {{end}}
                 <div class="dropdown pull-right" style="margin-right: 10px;">
                 {{if eq .Model.PrivatelyOwned 0}}
                 {{if .Model.IsEnableShare}}
@@ -298,6 +312,8 @@
 <script src="{{cdnjs "/static/nprogress/nprogress.js"}}" type="text/javascript"></script>
 <script src="{{cdnjs "/static/editor.md/lib/highlight/highlight.js"}}" type="text/javascript"></script>
 <script src="{{cdnjs "/static/js/jquery.highlight.js"}}" type="text/javascript"></script>
+<script src="{{cdnjs "/static/js/clipboard.min.js" "version"}}" type="text/javascript"></script>
+<script src="{{cdnjs "/static/prismjs/prismjs.js"}}" type="text/javascript"></script>
 <script src="{{cdnjs "/static/js/kancloud.js" "version"}}" type="text/javascript"></script>
 <script src="{{cdnjs "/static/js/splitbar.js" "version"}}" type="text/javascript"></script>
 <script src="{{cdnjs "/static/js/custom-elements-builtin-0.6.5.min.js"}}" type="text/javascript"></script>

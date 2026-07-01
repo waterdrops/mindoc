@@ -128,7 +128,7 @@ func (c *BlogController) ManageList() {
 
 	pageIndex, _ := c.GetInt("page", 1)
 
-	blogList, totalCount, err := models.NewBlog().FindToPager(pageIndex, conf.PageSize, c.Member.MemberId, "")
+	blogList, totalCount, err := models.NewBlog().FindToPager(pageIndex, conf.PageSize, c.Member.MemberId, "all")
 
 	if err != nil {
 		c.ShowErrorPage(500, err.Error())
@@ -162,13 +162,16 @@ func (c *BlogController) ManageSetting() {
 		bookIdentify := strings.TrimSpace(c.GetString("bookIdentify"))
 		documentId := 0
 
+		if c.Member.Role == conf.MemberReaderRole {
+			c.JsonResult(6001, i18n.Tr(c.Lang, "message.no_permission"))
+		}
 		if blogTitle == "" {
 			c.JsonResult(6001, i18n.Tr(c.Lang, "message.blog_title_empty"))
 		}
 		if strings.Count(blogExcerpt, "") > 500 {
 			c.JsonResult(6008, i18n.Tr(c.Lang, "message.blog_digest_tips"))
 		}
-		if blogStatus != "public" && blogStatus != "password" && blogStatus != "draft" {
+		if blogStatus != "private" && blogStatus != "public" && blogStatus != "password" && blogStatus != "draft" {
 			blogStatus = "public"
 		}
 		if blogStatus == "password" && blogPassword == "" {
@@ -285,6 +288,10 @@ func (c *BlogController) ManageSetting() {
 func (c *BlogController) ManageEdit() {
 	c.Prepare()
 	c.TplName = "blog/manage_edit.tpl"
+
+	if c.Member.Role == conf.MemberReaderRole {
+		c.JsonResult(6001, i18n.Tr(c.Lang, "message.no_permission"))
+	}
 
 	if c.Ctx.Input.IsPost() {
 		blogId, _ := c.GetInt("blogId", 0)
